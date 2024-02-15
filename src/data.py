@@ -12,11 +12,12 @@ class ColorizationDataset(Dataset):
     def __init__(self, paths, split='train'):
         if split == 'train':
             self.transforms = transforms.Compose([
-                transforms.Resize((SIZE, SIZE),  Image.BICUBIC),
-                # TODO: A little data augmentation FLIPS?!
+                transforms.RandomHorizontalFlip(), 
+                transforms.RandomVerticalFlip(),    
+                transforms.Resize((SIZE, SIZE)),  
             ])
         elif split == 'val':
-            self.transforms = transforms.Resize((SIZE, SIZE),  Image.BICUBIC)
+            self.transforms = transforms.Resize((SIZE, SIZE), Image.BICUBIC)
 
         self.split = split
         self.size = SIZE
@@ -24,18 +25,18 @@ class ColorizationDataset(Dataset):
 
     def __getitem__(self, idx):
         img = Image.open(self.paths[idx]).convert("RGB")
-        # TODO: apply transforms 
+        img = self.transforms(img)  # Apply transformations
         img = np.array(img)
-        img_lab = rgb2lab(img).astype("float32") # Converting RGB to L*a*b
-        # TODO: convert to tensor 
+        img_lab = rgb2lab(img).astype("float32")  # Converting RGB to L*a*b
 
-        L = img_lab[[0], ...] / 50. - 1. # Between -1 and 1
-        ab = img_lab[[1, 2], ...] / 110. # Between -1 and 1
+        L = img_lab[[0], ...] / 50. - 1.  # Between -1 and 1
+        ab = img_lab[[1, 2], ...] / 110.  # Between -1 and 1
 
         return {'L': L, 'ab': ab}
 
     def __len__(self):
         return len(self.paths)
+
 
 def make_dataloaders(batch_size=16, n_workers=1, pin_memory=True, **kwargs): # A handy function to make our dataloaders
     dataset = ColorizationDataset(**kwargs)
